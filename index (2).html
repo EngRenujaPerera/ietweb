@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kuppi Hub - Academic Resource Repository</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
+    .video-container { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-w-full; background: #000; border-radius: 12px; }
+    .video-container iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0; }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans h-screen flex overflow-hidden">
+
+  <aside class="w-72 bg-slate-950 border-r border-slate-800 flex flex-col justify-between">
+    <div class="p-6">
+      <div class="flex items-center gap-3 mb-8">
+        <i class="fa-solid fa-graduation-cap text-2xl text-indigo-400"></i>
+        <div>
+          <h1 class="font-bold text-base leading-tight">Kuppi Hub</h1>
+          <p class="text-xs text-slate-400">Resource Repository</p>
+        </div>
+      </div>
+
+      <div id="admin-badge" class="mb-6 p-3 bg-slate-900 border border-slate-800 rounded-xl flex items-center justify-between text-xs">
+        <span class="text-slate-400">Role: <strong id="role-text" class="text-emerald-400">Student (Guest)</strong></span>
+        <button onclick="toggleAdminView()" id="admin-action-btn" class="text-indigo-400 hover:text-indigo-300 font-medium">
+          <i class="fa-solid fa-lock"></i> Admin Log
+        </button>
+      </div>
+
+      <nav class="space-y-2" id="semester-nav"></nav>
+    </div>
+    
+    <div id="admin-tools" class="p-4 border-t border-slate-800 bg-slate-900/40 space-y-2 hidden">
+      <p class="text-[10px] uppercase font-bold text-indigo-400 px-2 tracking-wider">Admin Utilities</p>
+      <button onclick="exportDatabase()" class="w-full text-left px-3 py-2 text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg flex items-center gap-2 transition-all">
+        <i class="fa-solid fa-download text-emerald-400"></i> Export Updated Code
+      </button>
+    </div>
+  </aside>
+
+  <section class="w-80 bg-slate-900 border-r border-slate-800 flex flex-col">
+    <div class="p-6 border-b border-slate-800">
+      <h2 id="semester-title" class="text-xs font-semibold text-indigo-400 uppercase tracking-wider">Semester 01</h2>
+      <p class="text-xs text-slate-400 mt-1">Select a subject to view vault</p>
+    </div>
+    <div class="flex-1 overflow-y-auto p-4 space-y-2" id="subject-list"></div>
+  </section>
+
+  <main class="flex-1 bg-slate-950 flex flex-col overflow-hidden">
+    <header class="p-8 border-b border-slate-800 flex justify-between items-start bg-slate-900/20">
+      <div>
+        <div id="course-code-display" class="text-xs font-mono text-indigo-400 mb-1"></div>
+        <h2 id="course-title-display" class="text-2xl font-bold text-white"></h2>
+      </div>
+      <button id="master-add-btn" onclick="openAddModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium px-4 py-2.5 rounded-xl transition-all shadow-lg flex items-center gap-2 hidden">
+        <i class="fa-solid fa-plus"></i> Add Resource Link
+      </button>
+    </header>
+
+    <div class="px-8 border-b border-slate-800 bg-slate-900/10">
+      <div class="flex gap-2 overflow-x-auto py-3" id="category-tabs"></div>
+    </div>
+
+    <div class="flex-1 overflow-y-auto p-8" id="content-container"></div>
+  </main>
+
+  <div id="add-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl">
+      <h3 class="text-lg font-bold text-white mb-4"><i class="fa-solid fa-folder-plus text-indigo-400 mr-2"></i>Add Resource Entry</h3>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1">Item Title / Label</label>
+          <input id="input-title" type="text" placeholder="e.g., Vectors Tutorial Sheet" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1">Resource URL Link</label>
+          <input id="input-url" type="url" placeholder="https://..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500">
+        </div>
+      </div>
+      <div class="flex gap-3 mt-6">
+        <button onclick="closeAddModal()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm py-2.5 rounded-xl">Cancel</button>
+        <button onclick="saveAdminResource()" class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white text-sm py-2.5 rounded-xl font-medium">Publish Item</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="video-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-3xl p-4 shadow-2xl relative">
+      <div class="flex items-center justify-between mb-3 px-1">
+        <h3 id="video-modal-title" class="text-sm font-bold text-slate-200 truncate pr-4">Kuppi Session Video</h3>
+        <button onclick="closeVideoModal()" class="text-slate-400 hover:text-rose-400 transition-colors p-1">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+      <div class="video-container">
+        <iframe id="video-player" src="" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Master database structure including all semesters completely mapped out
+    let database = {
+      "Semester 01": [
+        {
+          "code": "MC 1020",
+          "title": "Mathematics",
+          "files": {
+            "labs": [],
+            "assignments": [{ "name": "Assignments Folder", "url": "https://drive.google.com/drive/folders/1YGWDLkdrgkgqQ_dvQIHmG2-G4yuj5eS7?usp=sharing" }],
+            "past-papers": [
+              { "name": "End Semester Examination Papers", "url": "https://drive.google.com/drive/folders/10B-Nb_mpYc-QroW6RaSKDYaE9UTkZFE7?usp=drive_link" },
+              { "name": "Mid Semester Examination Papers", "url": "https://drive.google.com/drive/folders/1c57FGW_A32GfDXuntBg4tX2j7kAUORkc?usp=sharing" }
+            ],
+            "lecture-materials": [
+              { "name": "Lecture Slides", "url": "https://drive.google.com/drive/folders/1rjbOzEd8eqbE0Y5nJ2lBDWpNz51FSmcw?usp=sharing" },
+              { "name": "Book Chapters", "url": "https://drive.google.com/drive/folders/1LlWmrjzCMQgVRZ6z3ZUDfRTKc_uxLxWu?usp=sharing" },
+              { "name": "Reference Books", "url": "https://drive.google.com/drive/folders/1O5E0lc2q3aj_rUkvp8dJe9GhZBDEhRPO?usp=sharing" }
+            ],
+            "tutorials-quiz": [
+              { "name": "Tutorials with Answers", "url": "https://drive.google.com/drive/folders/1u8r5MQ3t8g9qtmXzhi0wJNTVRGTe-IR1?usp=sharing" },
+              { "name": "Additional Materials", "url": "https://drive.google.com/drive/folders/1mDhYLDZ_4LqPe7mBrmVSVEaU4t5woirk?usp=sharing" }
+            ],
+            "kuppi-videos": [
+              { "name": "01. Vectors", "url": "https://youtu.be/X5sycusdLNo" },
+              { "name": "02. Complex Numbers", "url": "https://youtu.be/qVx2EqkhE_M" },
+              { "name": "03. Sets", "url": "https://youtu.be/VmWVja98Uy0" },
+              { "name": "04. Functions Part I", "url": "https://youtu.be/3chK0z7GIm0" },
+              { "name": "05. Functions Part 2", "url": "https://youtu.be/QiIzsuuqprY" },
+              { "name": "06. Functions Part 3", "url": "https://youtu.be/ih6FdSE4NMI" },
+              { "name": "07. Functions Part 04", "url": "https://youtu.be/VE4rJw2dAC0" },
+              { "name": "08. Sequences and Series", "url": "https://youtu.be/NmD6s-AXqYU" }
+            ]
+          }
+        },
+        { "code": "EC 1020", "title": "Applied Electricity", "files": { "labs": [], "assignments": [], "past-papers": [], "lecture-materials": [], "tutorials-quiz": [], "kuppi-videos": [] } },
+        { "code": "EC 1011", "title": "Computing", "files": { "labs": [], "assignments": [], "past-papers": [], "lecture-materials": [], "tutorials-quiz": [], "kuppi-videos": [] } },
+        { "code": "MC 1011", "title": "English Language and Enhancement", "files": { "labs": [], "assignments": [], "past-papers": [], "lecture-materials": [], "tutorials-quiz": [], "kuppi-videos": [] } },
+        { "code": "ID 1021", "title": "Engineering Metrology", "files": { "labs": [], "assignments": [], "past-papers": [], "lecture-materials": [], "tutorials-quiz": [], "kuppi-videos": [] } },
+        { "code": "ID 1010", "title": "Engineering Drawing", "files": { "labs": [], "assignments": [], "past-papers": [], "lecture-materials": [], "tutorials-quiz": [], "kuppi-videos": [] } }
+      ],
+      "Semester 02": [
+        { "code": "ID 2010", "title": "Material Science for Engineering", "files": { "labs": [], "assignments": [], "past-papers": [], "lecture-materials": [], "tutorials-quiz": [], "kuppi-videos": [] } },
+        { "code": "CE 2021", "title": "Engineering Mechanics", "files": { "labs": [], "assignments": [], "past-papers": [], "lecture-materials": [], "tutorials-quiz": [], "kuppi-videos": [] } },
+        { "code": "MC 2020", "title": "Linear Algebra", "files": { "labs": [], "assignments": [], "past-papers": [], "lecture-materials": [], "tutorials-quiz": [], "kuppi-videos": [] } },
+        { "code": "EC 2010", "title": "Computer Programming", "files": { "labs": [], "assignments": [], "past-papers": [], "lecture-materials": [], "tutorials-quiz": [], "kuppi-videos": [] } },
+        { "code": "MP 2010", "title": "Thermodynamics", "files": { "labs": [], "assignments": [], "past-papers": [], "lecture-materials": [], "tutorials-quiz": [], "kuppi-videos": [] } },
+        { "code": "ID 2010", "title": "Environmental Pollution and Control", "files": { "labs": [], "assignments": [], "past-papers": [], "lecture-materials": [], "tutorials-quiz": [], "kuppi-videos": [] } }
+      ],
+      "Semester 03": [
+        { "code": "MC 3010", "title": "Differential Equations and Numerical Methods", "files": { "labs": [], "assignments": [], "past-papers": [], "lecture-materials": [], "tutorials-quiz": [], "kuppi-videos": [] } },
+        { "code": "CE 3010", "title": "Mechanics of Materials", "files": { "labs": [], "assignments": [], "past-papers": [], "lecture-materials": [], "tutorials-quiz": [], "kuppi-videos": [] } },
+        { "code": "ID 3020", "title": "Design and Prototyping", "files": { "labs": [], "assignments": [], "past-papers": [], "lecture-materials": [], "tutorials-quiz": [], "kuppi-videos": [] } },
+        { "code": "MP 3010", "title": "Kinematics and Dynamics", "files": { "labs": [], "assignments": [], "past-papers": [], "lecture-materials": [], "tutorials-quiz": [], "kuppi-videos": [] } },
+        { "code": "EC 3011", "title": "Introduction to Electronics and Instrumentation", "files": { "labs": [], "assignments": [], "past-papers": [], "lecture-materials": [], "tutorials-quiz": [], "kuppi-videos": [] } },
+        { "code": "MC 3020", "title": "Probability and Statistics", "files": { "labs": [], "assignments": [], "past-papers": [], "lecture-materials": [], "tutorials-quiz": [], "kuppi-videos": [] } }
+      ]
+    };
+
+    // Sync with local modifications if saved
+    if (localStorage.getItem('kuppi_db')) {
+      database = JSON.parse(localStorage.getItem('kuppi_db'));
+    }
+
+    const categories = [
+      { id: "labs", name: "Labs", icon: "fa-flask-vial", colorClass: "text-blue-400 bg-blue-500/10" },
+      { id: "assignments", name: "Assignments", icon: "fa-file-code", colorClass: "text-purple-400 bg-purple-500/10" },
+      { id: "past-papers", name: "Past Papers", icon: "fa-file-lines", colorClass: "text-orange-400 bg-orange-500/10" },
+      { id: "lecture-materials", name: "Lecture Materials", icon: "fa-book-open", colorClass: "text-emerald-400 bg-emerald-500/10" },
+      { id: "tutorials-quiz", name: "Tutorials and Quiz", icon: "fa-circle-question", colorClass: "text-amber-400 bg-amber-500/10" },
+      { id: "kuppi-videos", name: "Kuppi Videos", icon: "fa-video", colorClass: "text-rose-400 bg-rose-500/10" }
+    ];
+
+    let currentSemester = "Semester 01";
+    let currentCourseIndex = 0;
+    let currentCategory = "kuppi-videos";
+    let isAdmin = false;
+
+    // Standard URL processing wrapper for YouTube
+    function getYoutubeEmbedUrl(url) {
+      let videoId = '';
+      const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+      const match = url.match(regExp);
+      if (match && match[2].length === 11) { videoId = match[2]; }
+      return videoId ? "https://www.youtube.com/embed/" + videoId + "?autoplay=1&rel=0" : null;
+    }
+
+    function openVideoModal(title, rawUrl) {
+      const embedUrl = getYoutubeEmbedUrl(rawUrl);
+      if (!embedUrl) { window.open(rawUrl, '_blank'); return; }
+      document.getElementById('video-modal-title').innerText = title;
+      document.getElementById('video-player').src = embedUrl;
+      document.getElementById('video-modal').classList.remove('hidden');
+    }
+
+    function closeVideoModal() {
+      document.getElementById('video-modal').classList.add('hidden');
+      document.getElementById('video-player').src = '';
+    }
+
+    function toggleAdminView() {
+      if (!isAdmin) {
+        if (prompt("Enter Access Key:") === "admin123") {
+          isAdmin = true;
+          document.getElementById('role-text').innerText = "Administrator";
+          document.getElementById('role-text').className = "text-amber-400 font-bold";
+          document.getElementById('master-add-btn').classList.remove('hidden');
+          document.getElementById('admin-tools').classList.remove('hidden');
+        }
+      } else {
+        isAdmin = false;
+        document.getElementById('role-text').innerText = "Student (Guest)";
+        document.getElementById('role-text').className = "text-emerald-400";
+        document.getElementById('master-add-btn').classList.add('hidden');
+        document.getElementById('admin-tools').classList.add('hidden');
+      }
+      updateMainView();
+    }
+
+    function changeSemester(sem) {
+      currentSemester = sem;
+      currentCourseIndex = 0;
+      document.getElementById('semester-title').innerText = sem;
+      initSemesters();
+      initSubjects();
+      updateMainView();
+    }
+
+    function initSemesters() {
+      const nav = document.getElementById('semester-nav');
+      nav.innerHTML = '';
+      Object.keys(database).forEach(sem => {
+        const active = sem === currentSemester;
+        const activeClass = active ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-900';
+        const iconClass = active ? 'rotate-90' : '';
+        
+        const btn = document.createElement('button');
+        btn.className = "w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-all " + activeClass;
+        btn.onclick = () => changeSemester(sem);
+        btn.innerHTML = '<div class="flex items-center gap-3"><i class="fa-regular fa-folder"></i><span>' + sem + '</span></div><i class="fa-solid fa-chevron-right text-xs transition-transform ' + iconClass + '"></i>';
+        nav.appendChild(btn);
+      });
+    }
+
+    function selectCourse(index) {
+      currentCourseIndex = index;
+      initSubjects();
+      updateMainView();
+    }
+
+    function initSubjects() {
+      const list = document.getElementById('subject-list');
+      list.innerHTML = '';
+      
+      database[currentSemester].forEach((course, index) => {
+        const select = index === currentCourseIndex;
+        const selectClass = select ? 'bg-slate-800 border-indigo-500/50 shadow-md' : 'bg-slate-900/50 border-slate-800/60 hover:border-slate-700';
+        
+        const btn = document.createElement('button');
+        btn.className = "w-full text-left p-4 rounded-xl border transition-all " + selectClass;
+        btn.onclick = () => selectCourse(index);
+        btn.innerHTML = '<span class="inline-block text-[10px] font-mono px-2 py-0.5 rounded bg-slate-950 text-indigo-300 font-semibold mb-2">' + course.code + '</span><h3 class="font-medium text-slate-200 text-xs tracking-wide line-clamp-2">' + course.title + '</h3>';
+        list.appendChild(btn);
+      });
+    }
+
+    function selectCategory(catId) {
+      currentCategory = catId;
+      initCategories();
+      updateMainView();
+    }
+
+    function initCategories() {
+      const tabs = document.getElementById('category-tabs');
+      tabs.innerHTML = '';
+      
+      categories.forEach(cat => {
+        const active = cat.id === currentCategory;
+        const activeClass = active ? 'bg-slate-800 text-white border border-slate-700' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/50';
+        const badgeClass = active ? cat.colorClass : 'bg-slate-800 text-slate-500';
+        
+        const btn = document.createElement('button');
+        btn.className = "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all " + activeClass;
+        btn.onclick = () => selectCategory(cat.id);
+        btn.innerHTML = '<span class="p-1 rounded-md ' + badgeClass + '"><i class="fa-solid ' + cat.icon + ' w-3.5 h-3.5 flex items-center justify-center"></i></span>' + cat.name;
+        tabs.appendChild(btn);
+      });
+    }
+
+    function updateMainView() {
+      const container = document.getElementById('content-container');
+      container.innerHTML = '';
+      
+      const activeCourse = database[currentSemester][currentCourseIndex];
+      document.getElementById('course-code-display').innerText = activeCourse.code + ' • ' + currentSemester;
+      document.getElementById('course-title-display').innerText = activeCourse.title;
+
+      const items = activeCourse.files[currentCategory] || [];
+      if (items.length === 0) {
+        const cat = categories.find(c => c.id === currentCategory);
+        container.innerHTML = '<div class="h-full flex items-center justify-center"><div class="border-2 border-dashed border-slate-800 rounded-2xl flex flex-col items-center justify-center p-12 text-center w-full max-w-xl bg-slate-900/10"><div class="p-4 bg-slate-900 text-slate-600 rounded-full mb-4"><i class="fa-solid ' + cat.icon + ' text-3xl"></i></div><h3 class="text-base font-medium text-slate-300">No content resources verified</h3><p class="text-xs text-slate-500 max-w-xs mt-1">Students can access items once an administrator updates this catalog block.</p></div></div>';
+        return;
+      }
+
+      const grid = document.createElement('div');
+      grid.className = "grid grid-cols-1 md:grid-cols-2 gap-4";
+      
+      items.forEach((item, idx) => {
+        const isVideo = currentCategory === 'kuppi-videos';
+        
+        const card = document.createElement('div');
+        card.className = "p-4 bg-slate-900/60 border border-slate-800 rounded-xl flex items-center justify-between hover:border-slate-700 transition-all";
+        
+        const infoDiv = document.createElement('div');
+        infoDiv.className = "flex items-center gap-3 overflow-hidden mr-2";
+        infoDiv.innerHTML = '<div class="p-2.5 rounded-lg bg-indigo-500/10 text-indigo-400 shrink-0"><i class="fa-solid ' + (isVideo ? 'fa-play-circle' : 'fa-file-arrow-down') + ' text-lg"></i></div>';
+        
+        const titleSpan = document.createElement('span');
+        titleSpan.className = "text-xs font-medium text-slate-300 truncate tracking-wide";
+        titleSpan.innerText = item.name;
+        infoDiv.appendChild(titleSpan);
+        card.appendChild(infoDiv);
+        
+        const actionDiv = document.createElement('div');
+        actionDiv.className = "flex items-center gap-2";
+        
+        const actionBtn = document.createElement('a');
+        actionBtn.className = "px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-[11px] font-medium rounded-lg text-slate-200 transition-all whitespace-nowrap cursor-pointer";
+        if (isVideo) {
+          actionBtn.onclick = () => openVideoModal(item.name, item.url);
+          actionBtn.innerHTML = '<i class="fa-solid fa-circle-play text-rose-400 mr-1"></i> Watch';
+        } else {
+          actionBtn.href = item.url;
+          actionBtn.target = "_blank";
+          actionBtn.innerHTML = '<i class="fa-solid fa-arrow-up-right-from-square mr-1"></i> Access';
+        }
+        actionDiv.appendChild(actionBtn);
+        
+        if (isAdmin) {
+          const delBtn = document.createElement('button');
+          delBtn.className = "p-1.5 text-slate-500 hover:text-rose-400 transition-all";
+          delBtn.onclick = () => deleteResource(idx);
+          delBtn.innerHTML = '<i class="fa-solid fa-trash-can text-xs"></i>';
+          actionDiv.appendChild(delBtn);
+        }
+        
+        card.appendChild(actionDiv);
+        grid.appendChild(card);
+      });
+      
+      container.appendChild(grid);
+    }
+
+    function openAddModal() { document.getElementById('add-modal').classList.remove('hidden'); }
+    function closeAddModal() { 
+      document.getElementById('add-modal').classList.add('hidden'); 
+      document.getElementById('input-title').value = ''; 
+      document.getElementById('input-url').value = ''; 
+    }
+
+    function saveAdminResource() {
+      const name = document.getElementById('input-title').value.trim();
+      const url = document.getElementById('input-url').value.trim();
+      if (!name || !url) { alert("Please fill out both fields."); return; }
+      
+      database[currentSemester][currentCourseIndex].files[currentCategory].push({ name: name, url: url });
+      localStorage.setItem('kuppi_db', JSON.stringify(database));
+      closeAddModal();
+      updateMainView();
+    }
+
+    function deleteResource(index) {
+      if (confirm("Delete this link permanently?")) {
+        database[currentSemester][currentCourseIndex].files[currentCategory].splice(index, 1);
+        localStorage.setItem('kuppi_db', JSON.stringify(database));
+        updateMainView();
+      }
+    }
+
+    function exportDatabase() {
+      const currentCode = document.documentElement.outerHTML;
+      const databaseString = 'let database = ' + JSON.stringify(database, null, 2) + ';';
+      const modifiedCode = currentCode.replace(/let database = \{[\s\S]*?\};/, databaseString);
+
+      const blob = new Blob([modifiedCode], { type: 'text/html' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'index.html';
+      a.click();
+    }
+
+    // Launch application initialization sequences cleanly
+    initSemesters();
+    initSubjects();
+    initCategories();
+    updateMainView();
+  </script>
+</body>
+</html>
